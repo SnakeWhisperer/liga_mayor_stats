@@ -253,7 +253,7 @@ def dump_stats(stats):
 
 def dump_player(stats, id):
     url = 'http://192.168.4.100/pizarra/scrapping/estadisticas.php'
-    
+
     for key in stats.keys():
         for i in range(1, len(stats[key]['hitting'])):
             if id in stats[key]['hitting'][i]:
