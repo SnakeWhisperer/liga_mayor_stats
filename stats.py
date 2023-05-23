@@ -283,6 +283,9 @@ def dump_player(stats, id):
 
         for i in range(1, len(stats[key]['pitching'])):
             if id in stats[key]['pitching'][i]:
+                ganados = re.sub('\-.*$', '', stats[key]['pitching'][i][3])
+                perdidos = re.sub('^.*\-', '', stats[key]['pitching'][i][3])
+
                 cleansed_pit_stats = {
                     'proceso': 3,
                     'posicion': 'P',
