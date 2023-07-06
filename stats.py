@@ -9,7 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
 
-def scrape(teams=[], pt=False):
+def scrape(teams=[], pt=False, n=False):
 
     if not teams:
         print('No se seleccionó ningún equipo.')
@@ -87,9 +87,12 @@ def scrape(teams=[], pt=False):
 
         time.sleep(3)
 
-
-        hitting_stats = get_stats('bat', driver)
-        pitching_stats = get_stats('pit', driver)
+        if not n:
+            hitting_stats = get_stats('bat', driver, team)
+            pitching_stats = get_stats('pit', driver, team)
+        else:
+            hitting_stats = get_stats_in('bat', driver, team)
+            pitching_stats = get_stats_in('pit', driver, team)
 
         team_key = teams_dict[team]
 
@@ -100,7 +103,7 @@ def scrape(teams=[], pt=False):
 
 
 
-def get_stats(stats_type, driver, pt=False):
+def get_stats(stats_type, driver, team, pt=False):
     if stats_type == 'bat':
         bat_stats_button = driver.find_element(
             By.XPATH,
@@ -132,7 +135,7 @@ def get_stats(stats_type, driver, pt=False):
 
     headers = [el.get_attribute('innerHTML') for el in stats_cols]
 
-    print(headers)
+    # print(headers)
 
     headers[0] = 'id'
 
@@ -155,14 +158,22 @@ def get_stats(stats_type, driver, pt=False):
         player_name = player_link.get_attribute('innerHTML')
         player_name = re.sub('[\*#]', '', player_name).strip()
         player_link = player_link.get_attribute('href')
-        player_id = re.search('\d+', player_link).group()
+        
+        player_id_match = re.search('\d+', player_link)
+
+        if player_id_match:
+            player_id = re.search('\d+', player_link).group()
+        else:
+            print(f"Player {player_name} from {team} has a strange ID."
+                  f"\nPlayer ignored.\n")
+            continue
 
         current_stats.append(player_id)
         current_stats.append(player_name)
 
-        print('Name: ', current_stats[1])
-        print('ID: ', current_stats[0])
-        print('\n')
+        # print('Name: ', current_stats[1])
+        # print('ID: ', current_stats[0])
+        # print('\n')
 
         current_player_stats_els = player_rows[i].find_elements(
             By.XPATH,
@@ -186,6 +197,67 @@ def get_stats(stats_type, driver, pt=False):
         all_player_stats.append(current_stats)
 
     return all_player_stats
+
+
+def get_stats_in(stats_type, driver, team, pt=False):
+    if stats_type == 'bat':
+        bat_stats_button = driver.find_element(
+            By.XPATH,
+            '//*[@id="e-bateo-boton"]'
+        )
+
+        bat_stats_button.click()
+
+    elif stats_type == 'pit':
+        pit_stats_button = driver.find_element(
+            By.XPATH,
+            '//*[@id="e-pitcheo-boton"]'
+        )
+
+        pit_stats_button.click()
+
+    time.sleep(5)
+
+    player_rows = driver.find_elements(
+        By.XPATH,
+        f'/html/body/main/div/div/div[5]/div/div/div/table/tbody/tr'
+    )
+
+    headers_gotten = False
+
+    for i in range(len(player_rows)):
+
+        current_stats = []
+        
+        try:
+            player_link = player_rows[i].find_element(
+                By.XPATH,
+                f'./td[2]/a'
+            )
+
+        except:
+            break
+
+        player_name = player_link.get_attribute('innerHTML')
+        player_name = re.sub('[\*#]', '', player_name).strip()
+        player_url = player_link.get_attribute('href')
+
+        driver.execute_script(f'window.open();')
+        driver.switch_to.window(driver.window_handles[-1])
+        driver.get(player_url)
+
+        table_headers = driver.find_elements(
+            By.XPATH,
+            '/html/body/main/div/div/div[5]/div/div[1]/table/thead/tr/th'
+        )
+
+        for header in table_headers:
+            print(header.get_attribute('innerHTML'))
+        # /html/body/main/div/div/div[5]/div/div[1]/table/thead/tr/th
+
+        driver.close()
+        driver.switch_to.window(driver.window_handles[0])
+
 
 
 def dump_stats(stats):
