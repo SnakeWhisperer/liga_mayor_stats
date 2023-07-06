@@ -224,6 +224,8 @@ def get_stats_in(stats_type, driver, team, pt=False):
     )
 
     headers_gotten = False
+    headers = ['id', 'name']
+    all_player_stats = []
 
     for i in range(len(player_rows)):
 
@@ -246,19 +248,67 @@ def get_stats_in(stats_type, driver, team, pt=False):
         driver.switch_to.window(driver.window_handles[-1])
         driver.get(player_url)
 
+        player_id_match = re.search('\d+$', player_url)
+
+        if player_id_match:
+            player_id = player_id_match.group()
+
+        current_stats = []
+
+        current_stats.append(player_id)
+        current_stats.append(player_name)
+
         table_headers = driver.find_elements(
             By.XPATH,
             '/html/body/main/div/div/div[5]/div/div[1]/table/thead/tr/th'
         )
 
-        for header in table_headers:
-            print(header.get_attribute('innerHTML'))
+        if not headers_gotten:
+            for m, header in enumerate(table_headers):
+                print(header.get_attribute('innerHTML'))
+
+                if m >= 2:
+                    headers.append(header.get_attribute('innerHTML'))
+
         # /html/body/main/div/div/div[5]/div/div[1]/table/thead/tr/th
+
+        table_rows = driver.find_elements(
+            By.XPATH,
+            '/html/body/main/div/div/div[5]/div/div[1]/table/tbody/tr'
+        )
+
+        for row in table_rows:
+            first_col = row.find_element(
+                By.XPATH,
+                './td[1]'
+            )
+
+            season_round = first_col.get_attribute('innerHTML')
+
+            if '2023' in season_round and 'Semi Final' in season_round:
+                stat_els = row.find_elements(
+                    By.XPATH,
+                    './td'
+                )
+
+                for j, stat_el in enumerate(stat_els):
+                    if j < 2:
+                        continue
+
+                    current_val = stat_el.get_attribute('innerHTML')
+
+                    current_stats.append(current_val)
+
+            else:
+                continue
+
+        all_player_stats.append(current_stats)
+
 
         driver.close()
         driver.switch_to.window(driver.window_handles[0])
 
-
+    return all_player_stats
 
 def dump_stats(stats):
     url = 'http://192.168.4.100/pizarra/scrapping/estadisticas.php'
@@ -310,6 +360,70 @@ def dump_stats(stats):
                 'bb': stats[key]['pitching'][i][13],
                 'cl': stats[key]['pitching'][i][12],
                 'efe': stats[key]['pitching'][i][2],
+                'id': stats[key]['pitching'][i][0],
+            }
+
+            response = requests.post(url, data=cleansed_pit_stats)
+            responses += '\n' + str(response) + '\n' + response.text + '\n\n'
+
+            print(response.text)
+            print(f'Jugador {stats[key]["pitching"][i][0]}.')
+            print('\n')
+
+    return responses
+
+
+def dump_stats_in(stats):
+    url = 'http://192.168.4.100/pizarra/scrapping/estadisticas.php'
+
+    responses = ''
+
+    for key in stats.keys():
+        for i in range(1, len(stats[key]['hitting'])):
+            responses += '\n' + stats[key]['hitting'][i][1]
+            cleansed_hit_stats = {
+                'proceso': 2,
+                'posicion': '2B',
+                'ci': stats[key]['hitting'][i][8],
+                'hr': stats[key]['hitting'][i][7],
+                'peb': stats[key]['hitting'][i][15].replace('.', ''),
+                'h': stats[key]['hitting'][i][4],
+                'bb': stats[key]['hitting'][i][9],
+                'vb': stats[key]['hitting'][i][2],
+                'gp': '0',
+                # 'gp': stats[key]['hitting'][i][3],
+                'dosb': stats[key]['hitting'][i][5],
+                'tresb': stats[key]['hitting'][i][6],
+                'sf': stats[key]['hitting'][i][-1],
+                'ave': stats[key]['hitting'][i][14].replace('.', ''),
+                'slg': stats[key]['hitting'][i][16].replace('.', ''),
+                'id': stats[key]['hitting'][i][0],
+            }
+
+            response = requests.post(url, data=cleansed_hit_stats)
+            responses += '\n' + str(response) + '\n' + response.text + '\n\n'
+
+            print(response.text)
+            print(f'Jugador {stats[key]["hitting"][i][0]}.')
+            print('\n')
+
+        for i in range(1, len(stats[key]['pitching'])):
+            responses += '\n' + stats[key]['pitching'][i][1]
+
+            # ganados = re.sub('\-.*$', '', stats[key]['pitching'][i][3])
+            # perdidos = re.sub('^.*\-', '', stats[key]['pitching'][i][3])
+
+            cleansed_pit_stats = {
+                'proceso': 3,
+                'posicion': 'P',
+                'ganados': stats[key]['pitching'][i][2],
+                'perdidos': stats[key]['pitching'][i][3],
+                'salvados': stats[key]['pitching'][i][7],
+                'ip': stats[key]['pitching'][i][8],
+                'strikes': stats[key]['pitching'][i][15],
+                'bb': stats[key]['pitching'][i][13],
+                'cl': stats[key]['pitching'][i][11],
+                'efe': stats[key]['pitching'][i][4],
                 'id': stats[key]['pitching'][i][0],
             }
 
