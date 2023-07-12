@@ -9,7 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
 
-def scrape(teams=[], pt=False, n=False):
+def scrape(teams=[], round=1, n=False):
 
     if not teams:
         print('No se seleccionó ningún equipo.')
@@ -88,11 +88,11 @@ def scrape(teams=[], pt=False, n=False):
         time.sleep(3)
 
         if not n:
-            hitting_stats = get_stats('bat', driver, team)
+            hitting_stats = get_stats('bat', driver, team,)
             pitching_stats = get_stats('pit', driver, team)
         else:
-            hitting_stats = get_stats_in('bat', driver, team)
-            pitching_stats = get_stats_in('pit', driver, team)
+            hitting_stats = get_stats_in('bat', driver, team, round)
+            pitching_stats = get_stats_in('pit', driver, team, round)
 
         team_key = teams_dict[team]
 
@@ -158,7 +158,7 @@ def get_stats(stats_type, driver, team, pt=False):
         player_name = player_link.get_attribute('innerHTML')
         player_name = re.sub('[\*#]', '', player_name).strip()
         player_link = player_link.get_attribute('href')
-        
+
         player_id_match = re.search('\d+', player_link)
 
         if player_id_match:
@@ -199,7 +199,14 @@ def get_stats(stats_type, driver, team, pt=False):
     return all_player_stats
 
 
-def get_stats_in(stats_type, driver, team, pt=False):
+def get_stats_in(stats_type, driver, team, round=1):
+    if round == 1:
+        round_s = '2023 / Regular'
+    elif round == 2:
+        round_s = '2023 / Semi Final'
+    else:
+        round_s = '2023 / Final'
+
     if stats_type == 'bat':
         bat_stats_button = driver.find_element(
             By.XPATH,
@@ -230,7 +237,7 @@ def get_stats_in(stats_type, driver, team, pt=False):
     for i in range(len(player_rows)):
 
         current_stats = []
-        
+
         try:
             player_link = player_rows[i].find_element(
                 By.XPATH,
@@ -285,7 +292,7 @@ def get_stats_in(stats_type, driver, team, pt=False):
 
             season_round = first_col.get_attribute('innerHTML')
 
-            if '2023' in season_round and 'Semi Final' in season_round:
+            if season_round.strip() == round_s:
                 stat_els = row.find_elements(
                     By.XPATH,
                     './td'
