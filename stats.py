@@ -7,6 +7,8 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+
 
 
 def scrape(teams=[], round=1, n=False):
@@ -39,10 +41,10 @@ def scrape(teams=[], round=1, n=False):
         7: {'name': 'Senadores', 'hitting': [], 'pitching': []},
     }
 
-    DRIVER_PATH = 'C:/chromedriver.exe'
-    options = Options()
+    service = Service(executable_path='C:/chromedriver.exe')
+    options = webdriver.ChromeOptions()
     # options.headless = True
-    driver = webdriver.Chrome(options=options, executable_path=DRIVER_PATH)
+    driver = webdriver.Chrome(options=options, service=service)
 
     for i, team in enumerate(teams):
         driver.get(f'https://www.lmbp.net')
