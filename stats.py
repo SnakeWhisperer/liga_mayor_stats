@@ -370,6 +370,7 @@ def dump_stats(stats):
                 'cl': stats[key]['pitching'][i][12],
                 'efe': stats[key]['pitching'][i][2],
                 'id': stats[key]['pitching'][i][0],
+                'h': stats[key]['pitching'][i][10],
             }
 
             response = requests.post(url, data=cleansed_pit_stats)
